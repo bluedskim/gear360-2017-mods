@@ -1,0 +1,59 @@
+<!-- from https://github.com/HeGanjie/busybox-httpd-directory-listing -->
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<script>
+function doGET(url, callback) {
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', url);
+	xhr.onload = function () { callback(xhr.response); };
+	xhr.send();
+}
+function isFolder(name) { return !name.match(/.+\.\w+/); }
+/**
+* if the file is jpg, put img tag.
+*/
+function preview(dirPath, val) {
+	if(val.endsWith(".JPG")) {
+		return val + '<br/><img src="' + completePathname(dirPath) + val + '" width="100%"/>';
+	} else {
+		//cant play with firefox "No video with supported format and MIME type found"
+		//return '<video width="320" height="240" controls> <source src="' + completePathname(dirPath) + val + '" type="video/mp4"></video>';
+		return val;
+	}
+}
+
+function completePathname(origin) { return origin[origin.length - 1] == '/' ? origin : origin + '/'; }
+
+function onFolderClick(a) {
+	var folderName = a.text;
+	if (folderName == '..') {
+		history.back();
+	} else {
+		var path = completePathname(location.pathname) + folderName;
+		history.pushState(null, null, path);
+		initPage(path);
+	}
+}
+function initPage(dirPath) {
+	doGET('/cgi-bin/list' + dirPath, function (res) {
+		document.body.innerHTML = '';
+		res.split('\n')
+		.filter(function (a) { return a != '' && a != '.'; })
+		.forEach(function (val, i) {
+			var div = document.createElement("div");
+			div.innerHTML = isFolder(val)
+				? "<a href='javascript:void(0)' onclick='onFolderClick(this)'>" + val + "</a>"
+				: "<a href='" + completePathname(dirPath) + val + "' target='_blank'>" + preview(dirPath, val) + "</a>";
+			document.body.appendChild(div);
+		});
+	});
+}
+addEventListener('popstate', function(e) { initPage(location.pathname); });
+addEventListener('load', function() { initPage('/DCIM/100PHOTO'); });
+</script>
+</head>
+<body>
+</body>
+</html> 
